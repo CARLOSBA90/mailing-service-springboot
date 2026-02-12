@@ -1,0 +1,49 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: mail-service
+
+  mail:
+    host: ${SPRING_MAIL_HOST:localhost}
+    port: ${SPRING_MAIL_PORT:25}
+    username: ${SPRING_MAIL_USERNAME:}
+    password: ${SPRING_MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: ${SPRING_MAIL_AUTH:false}
+          starttls:
+            enable: ${SPRING_MAIL_STARTTLS:false}
+    default-encoding: UTF-8
+
+  thymeleaf:
+    prefix: classpath:/templates/
+    suffix: .html
+    mode: HTML
+    encoding: UTF-8
+    check-template-location: true
+
+# Configuración del servicio
+mail-service:
+  api-key: ${API_KEY:dev-api-key-change-me}
+  from:
+    address: ${MAIL_FROM:no-reply@tudominio.com}
+    name: ${MAIL_FROM_NAME:Mi Tienda}
+
+# Actuator
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+
+# Logging
+logging:
+  level:
+    com.mailservice: INFO
+    org.springframework.mail: DEBUG

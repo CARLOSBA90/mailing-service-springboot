@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Confirmación de Pedido</title>
+</head>
+
+<body
+    style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f4f7;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0"
+        style="background-color: #f4f4f7; padding: 40px 0;">
+        <tr>
+            <td align="center">
+                <table role="presentation" width="600" cellspacing="0" cellpadding="0"
+                    style="background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+                    <!-- Header -->
+                    <tr>
+                        <td
+                            style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); padding: 40px 30px; text-align: center;">
+                            <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: 600;">Pedido Confirmado
+                                ✓</h1>
+                            <p style="color: rgba(255,255,255,0.8); margin: 10px 0 0; font-size: 14px;">
+                                Pedido #<span th:text="${orderId}">0000</span>
+                            </p>
+                        </td>
+                    </tr>
+                    <!-- Body -->
+                    <tr>
+                        <td style="padding: 40px 30px;">
+                            <p style="color: #333333; font-size: 16px; line-height: 1.6; margin: 0 0 20px;">
+                                Hola <strong th:text="${customerName}">Cliente</strong>,
+                            </p>
+                            <p style="color: #555555; font-size: 15px; line-height: 1.6; margin: 0 0 24px;">
+                                Tu pedido fue procesado exitosamente. Acá tenés el resumen:
+                            </p>
+
+                            <!-- Order Details -->
+                            <table role="presentation" width="100%" cellspacing="0" cellpadding="0"
+                                style="margin-bottom: 24px; border: 1px solid #e9ecef; border-radius: 8px; overflow: hidden;">
+                                <tr style="background-color: #f8f9fa;">
+                                    <td style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #555;">
+                                        Producto</td>
+                                    <td
+                                        style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #555; text-align: center;">
+                                        Cant.</td>
+                                    <td
+                                        style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #555; text-align: right;">
+                                        Precio</td>
+                                </tr>
+                                <tr th:each="item : ${items}">
+                                    <td style="padding: 12px 16px; font-size: 14px; color: #333; border-top: 1px solid #e9ecef;"
+                                        th:text="${item.name}">Producto</td>
+                                    <td style="padding: 12px 16px; font-size: 14px; color: #333; border-top: 1px solid #e9ecef; text-align: center;"
+                                        th:text="${item.quantity}">1</td>
+                                    <td style="padding: 12px 16px; font-size: 14px; color: #333; border-top: 1px solid #e9ecef; text-align: right;"
+                                        th:text="${item.price}">$0</td>
+                                </tr>
+                                <tr style="background-color: #f8f9fa;">
+                                    <td colspan="2"
+                                        style="padding: 14px 16px; font-size: 15px; font-weight: 700; color: #1a1a2e;">
+                                        Total</td>
+                                    <td style="padding: 14px 16px; font-size: 15px; font-weight: 700; color: #1a1a2e; text-align: right;"
+                                        th:text="${total}">$0</td>
+                                </tr>
+                            </table>
+
+                            <p style="color: #555555; font-size: 14px; line-height: 1.6; margin: 0;">
+                                Si tenés alguna consulta, no dudes en contactarnos.
+                            </p>
+                        </td>
+                    </tr>
+                    <!-- Footer -->
+                    <tr>
+                        <td
+                            style="background-color: #f8f9fa; padding: 24px 30px; text-align: center; border-top: 1px solid #e9ecef;">
+                            <p style="color: #999999; font-size: 12px; margin: 0;">
+                                Este correo fue enviado automáticamente, por favor no respondas a este mensaje.
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+
+</html>

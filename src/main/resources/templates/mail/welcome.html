@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bienvenido</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f4f7;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #f4f4f7; padding: 40px 0;">
+        <tr>
+            <td align="center">
+                <table role="presentation" width="600" cellspacing="0" cellpadding="0" style="background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+                    <!-- Header -->
+                    <tr>
+                        <td style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); padding: 40px 30px; text-align: center;">
+                            <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: 600;">¡Bienvenido!</h1>
+                        </td>
+                    </tr>
+                    <!-- Body -->
+                    <tr>
+                        <td style="padding: 40px 30px;">
+                            <p style="color: #333333; font-size: 16px; line-height: 1.6; margin: 0 0 20px;">
+                                Hola <strong th:text="${customerName}">Cliente</strong>,
+                            </p>
+                            <p style="color: #555555; font-size: 15px; line-height: 1.6; margin: 0 0 20px;">
+                                Gracias por registrarte en nuestra tienda. Estamos encantados de tenerte con nosotros.
+                            </p>
+                            <p style="color: #555555; font-size: 15px; line-height: 1.6; margin: 0 0 30px;">
+                                Ya podés explorar nuestro catálogo y encontrar los mejores productos con los mejores precios.
+                            </p>
+                            <!-- CTA Button -->
+                            <table role="presentation" cellspacing="0" cellpadding="0" style="margin: 0 auto;">
+                                <tr>
+                                    <td style="border-radius: 8px; background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);">
+                                        <a th:href="${storeUrl}" href="#" style="display: inline-block; padding: 14px 36px; color: #ffffff; text-decoration: none; font-size: 15px; font-weight: 600;">
+                                            Explorar la tienda
+                                        </a>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                    <!-- Footer -->
+                    <tr>
+                        <td style="background-color: #f8f9fa; padding: 24px 30px; text-align: center; border-top: 1px solid #e9ecef;">
+                            <p style="color: #999999; font-size: 12px; margin: 0;">
+                                Este correo fue enviado automáticamente, por favor no respondas a este mensaje.
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
