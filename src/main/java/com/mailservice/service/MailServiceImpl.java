@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -25,6 +26,9 @@ import java.util.concurrent.CompletableFuture;
 @RequiredArgsConstructor
 @Slf4j
 public class MailServiceImpl implements MailService {
+
+    private static final Set<String> ALLOWED_TEMPLATES = Set.of(
+            "welcome", "password-reset", "order-confirmation");
 
     private final JavaMailSender mailSender;
     private final TemplateEngine templateEngine;
@@ -54,11 +58,18 @@ public class MailServiceImpl implements MailService {
     }
 
     private String renderTemplate(MailRequest request) {
+        String template = request.getTemplate();
+
+        if (!ALLOWED_TEMPLATES.contains(template)) {
+            log.warn("Intento de uso de template no permitido: {}", template);
+            throw new IllegalArgumentException("Template no permitido: " + template);
+        }
+
         Context context = new Context();
         if (request.getVariables() != null) {
             request.getVariables().forEach(context::setVariable);
         }
-        return templateEngine.process("mail/" + request.getTemplate(), context);
+        return templateEngine.process("mail/" + template, context);
     }
 
     private void sendHtmlMessage(String to, String subject, String htmlContent)

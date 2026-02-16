@@ -4,6 +4,8 @@ server:
 spring:
   application:
     name: mail-service
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
 
   mail:
     host: ${SPRING_MAIL_HOST:localhost}
@@ -46,4 +48,4 @@ management:
 logging:
   level:
     com.mailservice: INFO
-    org.springframework.mail: DEBUG
+    org.springframework.mail: WARN

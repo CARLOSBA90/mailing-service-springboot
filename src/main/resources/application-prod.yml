@@ -1,0 +1,24 @@
+# =============================================
+# Perfil PRODUCCIÓN — sobreescribe application.yml
+# Se activa con: SPRING_PROFILES_ACTIVE=prod
+# =============================================
+
+# En producción, API_KEY es OBLIGATORIA (sin fallback)
+mail-service:
+  api-key: ${API_KEY}
+
+# SMTP debe usar autenticación y TLS
+spring:
+  mail:
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
+# Log: solo warnings y errores
+logging:
+  level:
+    com.mailservice: WARN
+    org.springframework.mail: WARN
