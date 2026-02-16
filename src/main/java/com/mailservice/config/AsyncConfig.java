@@ -6,6 +6,7 @@ import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 import java.util.concurrent.Executor;
+import java.util.concurrent.ThreadPoolExecutor;
 
 /**
  * Configuración del ThreadPool para procesamiento async de emails.
@@ -22,6 +23,7 @@ public class AsyncConfig {
         executor.setMaxPoolSize(5);
         executor.setQueueCapacity(100);
         executor.setThreadNamePrefix("mail-worker-");
+        executor.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
         executor.setWaitForTasksToCompleteOnShutdown(true);
         executor.setAwaitTerminationSeconds(30);
         executor.initialize();

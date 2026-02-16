@@ -62,11 +62,16 @@ En una arquitectura de microservicios o incluso en un monolito bien organizado, 
 | **Templates HTML** | Motor Thymeleaf para emails profesionales y responsive |
 | **Procesamiento Async** | Los emails se encolan y procesan en background sin bloquear la respuesta HTTP |
 | **Reintentos Automáticos** | Hasta 3 intentos con backoff exponencial (2s → 4s → 8s) ante fallos SMTP |
-| **Seguridad API Key** | Autenticación por header `X-API-Key` para comunicación inter-servicios |
+| **Seguridad API Key** | Autenticación por header `X-API-Key` con comparación constant-time |
+| **Spring Profiles** | Configuración automática según entorno (`dev` / `prod`) |
+| **Rate Limiting** | Protección contra abuso (30 req/min por IP) |
+| **Security Headers** | X-Content-Type-Options, X-Frame-Options, Cache-Control |
+| **Path Traversal Protection** | Whitelist de templates permitidos |
 | **Health Check** | Endpoint `/actuator/health` para monitoreo y balanceadores de carga |
-| **Dockerizado** | Imagen ligera basada en `eclipse-temurin:17-jre-alpine` |
+| **Dockerizado** | Imagen ligera con usuario no-root basada en `eclipse-temurin:17-jre-alpine` |
 | **Validación** | Validación automática del request (email, campos obligatorios) |
 | **Manejo de Errores** | Respuestas consistentes con `GlobalExceptionHandler` |
+| **Tests de Seguridad** | Suite completa de tests (16 tests cubriendo autenticación, validación y path traversal) |
 
 ---
 
@@ -126,6 +131,43 @@ En una arquitectura de microservicios o incluso en un monolito bien organizado, 
 
 ---
 
+## 🔐 Seguridad y Perfiles de Entorno
+
+Este servicio implementa **Spring Profiles** para separar la configuración de desarrollo y producción de forma automática:
+
+### Perfiles Disponibles
+
+| Perfil | Cuándo se activa | API Key | Seguridad |
+|---|---|---|---|
+| **`dev`** | Por defecto (desarrollo local) | Fallback: `dev-api-key-change-me` | Permite arrancar sin configuración |
+| **`prod`** | Docker (automático) o `SPRING_PROFILES_ACTIVE=prod` | **Obligatoria** vía `$API_KEY` | Falla si no está configurada o usa valor de dev |
+
+### ¿Cómo funciona?
+
+Spring Boot carga automáticamente los archivos de configuración según el perfil activo:
+
+```
+1. application.yml          ← SIEMPRE se carga (base)
+2. application-prod.yml     ← Se carga SOLO si perfil = prod (sobreescribe valores)
+```
+
+**En desarrollo:**
+- Perfil `dev` activo por defecto
+- API Key tiene fallback seguro para testing
+- SMTP apunta a localhost sin autenticación
+- Logs en nivel `INFO`
+
+**En producción (Docker):**
+- Perfil `prod` forzado automáticamente en el `Dockerfile`
+- API Key **obligatoria** — la app no arranca sin ella
+- SMTP requiere autenticación y TLS
+- Logs en nivel `WARN`
+- Usuario no-root en el contenedor
+
+> **📖 Para más detalles sobre deploy**, consulta [`DEPLOY.md`](DEPLOY.md)
+
+---
+
 ##  Requisitos Previos
 
 - **Java 17+** (para desarrollo local)
@@ -146,22 +188,28 @@ cd mailing-service-springboot
 
 ### 2. Configurar variables de entorno
 
-El servicio se configura **completamente** mediante variables de entorno. No es necesario tocar archivos de código:
+**Para desarrollo local:** No necesitas configurar nada. El perfil `dev` usa valores por defecto seguros para testing.
 
-| Variable | Descripción | Default |
-|---|---|---|
-| `SPRING_MAIL_HOST` | Host del servidor SMTP | `localhost` |
-| `SPRING_MAIL_PORT` | Puerto SMTP | `25` |
-| `SPRING_MAIL_USERNAME` | Usuario SMTP (si aplica) | _(vacío)_ |
-| `SPRING_MAIL_PASSWORD` | Contraseña SMTP (si aplica) | _(vacío)_ |
-| `SPRING_MAIL_AUTH` | ¿Requiere autenticación SMTP? | `false` |
-| `SPRING_MAIL_STARTTLS` | ¿Usar TLS? | `false` |
-| `API_KEY` | Clave API para autenticar requests | `dev-api-key-change-me` |
-| `MAIL_FROM` | Email del remitente | `no-reply@tudominio.com` |
-| `MAIL_FROM_NAME` | Nombre visible del remitente | `Mi Tienda` |
+**Para producción:** Configura estas variables de entorno:
+
+| Variable | Descripción | Default (Dev) | Requerida en Prod |
+|---|---|---|---|
+| `API_KEY` | Clave API para autenticar requests | `dev-api-key-change-me` | ✅ **Sí** |
+| `SPRING_MAIL_HOST` | Host del servidor SMTP | `localhost` | ✅ Sí |
+| `SPRING_MAIL_PORT` | Puerto SMTP | `25` | ✅ Sí |
+| `SPRING_MAIL_USERNAME` | Usuario SMTP (si aplica) | _(vacío)_ | ✅ Sí |
+| `SPRING_MAIL_PASSWORD` | Contraseña SMTP (si aplica) | _(vacío)_ | ✅ Sí |
+| `MAIL_FROM` | Email del remitente | `no-reply@tudominio.com` | Recomendado |
+| `MAIL_FROM_NAME` | Nombre visible del remitente | `Mi Tienda` | Opcional |
+
+> **🔑 Generar API Key segura:**
+> ```powershell
+> ./generate-api-key.ps1
+> ```
+> Copia el resultado y úsalo como valor de `API_KEY` en producción.
 
 > [!CAUTION]
-> **Cambiá el `API_KEY` por defecto antes de desplegar a producción.** Usá un valor largo y aleatorio.
+> **Nunca uses `dev-api-key-change-me` en producción.** La aplicación detecta este valor en perfil `prod` y se niega a arrancar.
 
 ### 3. Compilar y ejecutar
 
@@ -735,6 +783,59 @@ src/main/resources/
     ├── password-reset.html           # Template de reseteo de contraseña
     └── order-confirmation.html       # Template de confirmación de pedido
 ```
+
+---
+
+## 📝 Template de Archivo `.env` para Producción
+
+Crea un archivo `.env` en la raíz de tu proyecto (o en el servidor donde desplegarás) con este contenido:
+
+```bash
+# ======================================================
+# MAILING SERVICE - Configuracion de Produccion
+# ======================================================
+
+# --- API Key (OBLIGATORIA) ---
+# Genera una clave segura con: ./generate-api-key.ps1
+# NUNCA uses 'dev-api-key-change-me' en produccion
+API_KEY=tu-api-key-generada-aqui
+
+# --- Configuracion SMTP ---
+# Ejemplo con Brevo (gratuito hasta 300 emails/dia)
+SPRING_MAIL_HOST=smtp-relay.brevo.com
+SPRING_MAIL_PORT=587
+SPRING_MAIL_USERNAME=tu-login@brevo.com
+SPRING_MAIL_PASSWORD=tu-smtp-key-de-brevo
+SPRING_MAIL_AUTH=true
+SPRING_MAIL_STARTTLS=true
+
+# --- Remitente ---
+MAIL_FROM=no-reply@tudominio.com
+MAIL_FROM_NAME=Mi Aplicacion
+
+# --- Perfil de Spring (opcional) ---
+# En Docker se fuerza automaticamente a 'prod'
+# SPRING_PROFILES_ACTIVE=prod
+```
+
+### Uso con Docker Compose
+
+Si usas Docker Compose, referencia este archivo en tu `docker-compose.yml`:
+
+```yaml
+services:
+  mail-service:
+    image: mail-service:latest
+    env_file: .env  # <-- Lee las variables del archivo .env
+    ports:
+      - "8081:8081"
+    restart: unless-stopped
+```
+
+> **⚠️ IMPORTANTE:** Agrega `.env` a tu `.gitignore` para no subir credenciales al repositorio:
+> ```bash
+> echo ".env" >> .gitignore
+> ```
 
 ---
 
