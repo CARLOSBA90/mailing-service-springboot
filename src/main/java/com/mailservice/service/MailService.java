@@ -2,6 +2,7 @@ package com.mailservice.service;
 
 import com.mailservice.dto.MailRequest;
 
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -13,4 +14,9 @@ public interface MailService {
      * Envía un email de forma async usando el template y variables indicados.
      */
     CompletableFuture<Void> sendMail(MailRequest request);
+
+    /**
+     * Reintenta el envío de un email previamente fallido.
+     */
+    CompletableFuture<Void> retryMail(UUID mailLogId);
 }

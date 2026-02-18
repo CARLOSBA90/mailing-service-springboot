@@ -27,6 +27,29 @@ spring:
     encoding: UTF-8
     check-template-location: true
 
+  # Database
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/mailservice}
+    username: ${SPRING_DATASOURCE_USERNAME:mailuser}
+    password: ${SPRING_DATASOURCE_PASSWORD:mailpass123}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 30000
+
+  # JPA / Hibernate
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: ${SPRING_JPA_DDL_AUTO:validate}
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+        jdbc:
+          time_zone: UTC
+
 # Configuración del servicio
 mail-service:
   api-key: ${API_KEY:dev-api-key-change-me}
