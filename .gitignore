@@ -37,4 +37,10 @@ build/
 
 ### Env ###
 *.env
+
+### Spring Boot - Archivos con credenciales sensibles ###
+src/main/resources/application-dev.yml
+src/main/resources/application-local.yml
+
+### Documentación temporal ###
 ISSUES.md
