@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mail Service - Detalle</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" th:href="@{/css/admin.css}">
+</head>
+
+<body>
+
+    <!-- Navbar -->
+    <nav class="admin-nav">
+        <div class="nav-inner">
+            <div class="nav-brand">
+                <span class="brand-icon">📬</span>
+                <span>Mail Service</span>
+            </div>
+            <div class="nav-links">
+                <a href="/admin">Dashboard</a>
+                <a href="/admin/logs" class="active">Logs</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="admin-container">
+        <!-- Header -->
+        <div class="page-header">
+            <div class="actions-bar">
+                <div>
+                    <h1>Detalle del Email</h1>
+                    <p style="font-family: monospace; font-size: 0.8rem; color: var(--text-muted); margin-top: 4px;"
+                        th:text="${log.id}">uuid</p>
+                </div>
+                <div style="display: flex; gap: 8px;">
+                    <a href="/admin/logs" class="btn btn-ghost btn-sm">← Volver</a>
+                    <form th:if="${log.status.name() == 'FAILED'}" th:action="@{/admin/logs/{id}/retry(id=${log.id})}"
+                        method="post" style="display: inline;">
+                        <button type="submit" class="btn btn-retry" onclick="return confirm('¿Reintentar este email?')">
+                            🔄 Reintentar Envío
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Detail Card -->
+        <div class="card" style="margin-bottom: 24px;">
+            <div class="card-header">
+                <h2>Información del Email</h2>
+                <span class="badge"
+                    th:classappend="${log.status.name() == 'SENT'} ? 'badge-sent' : (${log.status.name() == 'FAILED'} ? 'badge-failed' : (${log.status.name() == 'PENDING'} ? 'badge-pending' : 'badge-retrying'))"
+                    th:text="${log.status}">SENT</span>
+            </div>
+            <div class="detail-grid">
+                <div class="detail-label">Destinatario</div>
+                <div class="detail-value" th:text="${log.recipient}">—</div>
+
+                <div class="detail-label">Asunto</div>
+                <div class="detail-value" th:text="${log.subject}">—</div>
+
+                <div class="detail-label">Template</div>
+                <div class="detail-value" th:text="${log.templateName}">—</div>
+
+                <div class="detail-label">Intentos</div>
+                <div class="detail-value" th:text="${log.attempts}">0</div>
+
+                <div class="detail-label">Creado</div>
+                <div class="detail-value" th:text="${#temporals.format(log.createdAt, 'dd/MM/yyyy HH:mm:ss')}">—</div>
+
+                <div class="detail-label">Enviado</div>
+                <div class="detail-value"
+                    th:text="${log.sentAt != null} ? ${#temporals.format(log.sentAt, 'dd/MM/yyyy HH:mm:ss')} : '—'">—
+                </div>
+
+                <div class="detail-label">Último Reintento</div>
+                <div class="detail-value"
+                    th:text="${log.lastRetryAt != null} ? ${#temporals.format(log.lastRetryAt, 'dd/MM/yyyy HH:mm:ss')} : '—'">
+                    —</div>
+            </div>
+        </div>
+
+        <!-- Variables Card -->
+        <div class="card" style="margin-bottom: 24px;" th:if="${log.variables != null && !log.variables.isEmpty()}">
+            <div class="card-header">
+                <h2>Variables del Template</h2>
+            </div>
+            <div class="card-body">
+                <div class="variables-box" th:text="${log.variables}">{ }</div>
+            </div>
+        </div>
+
+        <!-- Error Card -->
+        <div class="card" style="margin-bottom: 24px;" th:if="${log.errorMessage != null}">
+            <div class="card-header">
+                <h2>Error</h2>
+            </div>
+            <div class="card-body">
+                <div class="error-box" th:text="${log.errorMessage}">—</div>
+            </div>
+        </div>
+    </div>
+
+</body>
+
+</html>

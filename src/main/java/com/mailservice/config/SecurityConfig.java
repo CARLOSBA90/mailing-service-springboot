@@ -77,6 +77,7 @@ public class SecurityConfig {
                         .cacheControl(Customizer.withDefaults()))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/actuator/health").permitAll()
+                        .requestMatchers("/admin/**", "/css/**", "/js/**").permitAll()
                         .anyRequest().authenticated())
                 .addFilterBefore(apiKeyFilter(), UsernamePasswordAuthenticationFilter.class);
 
@@ -93,7 +94,9 @@ public class SecurityConfig {
 
                 String path = request.getRequestURI();
 
-                if (path.startsWith("/actuator")) {
+                // Rutas que no requieren API Key
+                if (path.startsWith("/actuator") || path.startsWith("/admin")
+                        || path.startsWith("/css") || path.startsWith("/js")) {
                     filterChain.doFilter(request, response);
                     return;
                 }

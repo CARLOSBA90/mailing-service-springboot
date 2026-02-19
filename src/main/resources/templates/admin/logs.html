@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mail Service - Logs</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" th:href="@{/css/admin.css}">
+</head>
+
+<body>
+
+    <!-- Navbar -->
+    <nav class="admin-nav">
+        <div class="nav-inner">
+            <div class="nav-brand">
+                <span class="brand-icon">📬</span>
+                <span>Mail Service</span>
+            </div>
+            <div class="nav-links">
+                <a href="/admin">Dashboard</a>
+                <a href="/admin/logs" class="active">Logs</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="admin-container">
+        <!-- Header -->
+        <div class="page-header">
+            <h1>Email Logs</h1>
+            <p>Historial de emails con filtros y acciones de reintento</p>
+        </div>
+
+        <!-- Alerts -->
+        <div class="alert alert-success" th:if="${successMessage}">
+            <span>✅</span>
+            <span th:text="${successMessage}"></span>
+        </div>
+        <div class="alert alert-error" th:if="${errorMessage}">
+            <span>❌</span>
+            <span th:text="${errorMessage}"></span>
+        </div>
+
+        <!-- Filters -->
+        <div class="filters-section">
+            <!-- Status Pills -->
+            <div class="filter-row">
+                <div class="filter-group">
+                    <label>Estado:</label>
+                    <div class="filter-pills">
+                        <a href="/admin/logs" class="filter-pill"
+                            th:classappend="${activeStatus == null && activeRecipient == null && activeDateFrom == null} ? 'active' : ''">Todos</a>
+                        <a th:each="s : ${statuses}" th:href="@{/admin/logs(status=${s.name()})}" th:text="${s.name()}"
+                            th:classappend="${activeStatus == s.name()} ? 'active' : ''" class="filter-pill">STATUS</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Date Range + Search -->
+            <div class="filter-row">
+                <form action="/admin/logs" method="get" class="filters-form">
+                    <!-- Mantener estado activo -->
+                    <input type="hidden" name="status" th:value="${activeStatus}" th:if="${activeStatus != null}">
+
+                    <div class="filter-group">
+                        <label>Desde:</label>
+                        <input type="date" name="dateFrom" class="date-input" th:value="${activeDateFrom}">
+                    </div>
+                    <div class="filter-group">
+                        <label>Hasta:</label>
+                        <input type="date" name="dateTo" class="date-input" th:value="${activeDateTo}">
+                    </div>
+                    <div class="filter-group">
+                        <label>Destinatario:</label>
+                        <input type="text" name="recipient" class="search-input" placeholder="email@ejemplo.com"
+                            th:value="${activeRecipient}">
+                    </div>
+                    <div class="filter-actions">
+                        <button type="submit" class="btn btn-primary btn-sm">🔍 Filtrar</button>
+                        <a href="/admin/logs" class="btn btn-ghost btn-sm">✕ Limpiar</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Actions Bar -->
+        <div class="actions-bar" style="margin-top: 16px;">
+            <span style="font-size: 0.8rem; color: var(--text-muted);">
+                <span th:text="${logs.totalElements}">0</span> registros encontrados
+            </span>
+            <!-- Retry All Failed Button -->
+            <form action="/admin/logs/retry-all-failed" method="post">
+                <button type="submit" class="btn btn-retry btn-sm"
+                    onclick="return confirm('¿Reintentar todos los emails fallidos (máx 5 intentos)?')">
+                    🔄 Reintentar Todos los Fallidos
+                </button>
+            </form>
+        </div>
+
+        <!-- Table -->
+        <div class="card" style="margin-top: 12px;">
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Destinatario</th>
+                            <th>Asunto</th>
+                            <th>Template</th>
+                            <th>Estado</th>
+                            <th>Intentos</th>
+                            <th>Fecha</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="log : ${logs.content}">
+                            <td class="primary-col" th:text="${log.recipient}">—</td>
+                            <td th:text="${log.subject}">—</td>
+                            <td th:text="${log.templateName}">—</td>
+                            <td>
+                                <span class="badge"
+                                    th:classappend="${log.status.name() == 'SENT'} ? 'badge-sent' : (${log.status.name() == 'FAILED'} ? 'badge-failed' : (${log.status.name() == 'PENDING'} ? 'badge-pending' : 'badge-retrying'))"
+                                    th:text="${log.status}">SENT</span>
+                            </td>
+                            <td th:text="${log.attempts}">0</td>
+                            <td th:text="${#temporals.format(log.createdAt, 'dd/MM/yyyy HH:mm')}">—</td>
+                            <td>
+                                <div class="action-buttons">
+                                    <a th:href="@{/admin/logs/{id}(id=${log.id})}" class="btn btn-ghost btn-sm"
+                                        title="Ver detalle">👁 Detalle</a>
+                                    <form th:if="${log.status.name() == 'FAILED'}"
+                                        th:action="@{/admin/logs/{id}/retry(id=${log.id})}" method="post"
+                                        style="display: inline;">
+                                        <button type="submit" class="btn btn-retry btn-sm" title="Reintentar envío"
+                                            onclick="return confirm('¿Reintentar este email?')">🔄 Reintentar</button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr th:if="${logs.content.isEmpty()}">
+                            <td colspan="7">
+                                <div class="empty-state">
+                                    <div class="empty-icon">📭</div>
+                                    <p>No se encontraron registros con los filtros seleccionados</p>
+                                    <a href="/admin/logs" class="btn btn-ghost btn-sm" style="margin-top: 12px;">Limpiar
+                                        filtros</a>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            <div class="pagination" th:if="${logs.totalPages > 1}">
+                <a th:href="@{/admin/logs(page=${logs.number - 1}, status=${activeStatus}, recipient=${activeRecipient}, dateFrom=${activeDateFrom}, dateTo=${activeDateTo})}"
+                    th:classappend="${logs.first} ? 'disabled' : ''">← Anterior</a>
+
+                <th:block th:each="i : ${#numbers.sequence(0, logs.totalPages - 1)}">
+                    <a th:href="@{/admin/logs(page=${i}, status=${activeStatus}, recipient=${activeRecipient}, dateFrom=${activeDateFrom}, dateTo=${activeDateTo})}"
+                        th:text="${i + 1}" th:classappend="${i == logs.number} ? 'active' : ''">1</a>
+                </th:block>
+
+                <a th:href="@{/admin/logs(page=${logs.number + 1}, status=${activeStatus}, recipient=${activeRecipient}, dateFrom=${activeDateFrom}, dateTo=${activeDateTo})}"
+                    th:classappend="${logs.last} ? 'disabled' : ''">Siguiente →</a>
+            </div>
+        </div>
+
+        <!-- Summary -->
+        <div style="padding: 16px 0; text-align: center;">
+            <span style="font-size: 0.8rem; color: var(--text-muted);">
+                Mostrando <span th:text="${logs.numberOfElements}">0</span> de
+                <span th:text="${logs.totalElements}">0</span> registros
+                — Página <span th:text="${logs.number + 1}">1</span>
+                de <span th:text="${logs.totalPages}">1</span>
+            </span>
+        </div>
+    </div>
+
+</body>
+
+</html>

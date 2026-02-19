@@ -32,6 +32,10 @@ public interface MailLogRepository extends JpaRepository<MailLog, UUID> {
     Page<MailLog> findByCreatedAtBetweenOrderByCreatedAtDesc(
             LocalDateTime from, LocalDateTime to, Pageable pageable);
 
+    // Buscar por estado + rango de fechas (filtro combinado)
+    Page<MailLog> findByStatusAndCreatedAtBetweenOrderByCreatedAtDesc(
+            MailStatus status, LocalDateTime from, LocalDateTime to, Pageable pageable);
+
     // Contar por estado (para dashboard)
     long countByStatus(MailStatus status);
 
