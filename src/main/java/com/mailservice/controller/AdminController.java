@@ -31,6 +31,14 @@ public class AdminController {
     private final MailService mailService;
 
     /**
+     * Página de login.
+     */
+    @GetMapping("/login")
+    public String login() {
+        return "admin/login";
+    }
+
+    /**
      * Dashboard principal con estadísticas.
      */
     @GetMapping
@@ -67,6 +75,10 @@ public class AdminController {
             @RequestParam(required = false) String dateTo,
             Model model) {
 
+        // Validación de inputs
+        page = Math.max(0, page);
+        size = Math.max(1, Math.min(size, 100));
+
         PageRequest pageRequest = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
         Page<MailLog> logs;
 
@@ -74,10 +86,19 @@ public class AdminController {
         LocalDateTime from = parseDate(dateFrom, true);
         LocalDateTime to = parseDate(dateTo, false);
 
+        // Validar status
+        MailStatus mailStatus = null;
+        if (status != null && !status.isBlank()) {
+            try {
+                mailStatus = MailStatus.valueOf(status);
+            } catch (IllegalArgumentException e) {
+                log.warn("Status inválido recibido: {}", status);
+                // Ignorar filtro de status inválido
+            }
+        }
+
         if (from != null && to != null) {
-            if (status != null && !status.isBlank()) {
-                // Filtro combinado: estado + fechas
-                MailStatus mailStatus = MailStatus.valueOf(status);
+            if (mailStatus != null) {
                 logs = mailLogRepository.findByStatusAndCreatedAtBetweenOrderByCreatedAtDesc(
                         mailStatus, from, to, pageRequest);
             } else {
@@ -85,10 +106,9 @@ public class AdminController {
             }
             model.addAttribute("activeDateFrom", dateFrom);
             model.addAttribute("activeDateTo", dateTo);
-            if (status != null && !status.isBlank())
+            if (mailStatus != null)
                 model.addAttribute("activeStatus", status);
-        } else if (status != null && !status.isBlank()) {
-            MailStatus mailStatus = MailStatus.valueOf(status);
+        } else if (mailStatus != null) {
             logs = mailLogRepository.findByStatusOrderByCreatedAtDesc(mailStatus, pageRequest);
             model.addAttribute("activeStatus", status);
         } else if (recipient != null && !recipient.isBlank()) {

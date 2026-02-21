@@ -16,92 +16,127 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * Tests de seguridad para el filtro de API Key.
  * Valida autenticación, rechazo y security headers.
  */
-@SpringBootTest(properties = "mail-service.api-key=test-secure-key-12345")
+@SpringBootTest(properties = {
+                "mail-service.api-key=test-secure-key-12345",
+                "admin.username=admin",
+                "admin.password=admin123"
+})
 @AutoConfigureMockMvc
 class SecurityConfigTest {
 
-    @Autowired
-    private MockMvc mockMvc;
+        @Autowired
+        private MockMvc mockMvc;
 
-    private static final String SEND_ENDPOINT = "/api/mail/send";
-    private static final String VALID_API_KEY = "test-secure-key-12345";
+        private static final String SEND_ENDPOINT = "/api/mail/send";
+        private static final String VALID_API_KEY = "test-secure-key-12345";
 
-    // ── Rechazo sin API Key → 401 ──
+        // ── Rechazo sin API Key → 401 ──
 
-    @Test
-    @DisplayName("Debe rechazar request sin header X-API-Key con 401")
-    void shouldRejectRequestWithoutApiKey() throws Exception {
-        mockMvc.perform(post(SEND_ENDPOINT)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(validMailRequestJson()))
-                .andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.error").value("API Key inválida o ausente"));
-    }
+        @Test
+        @DisplayName("Debe rechazar request sin header X-API-Key con 401")
+        void shouldRejectRequestWithoutApiKey() throws Exception {
+                mockMvc.perform(post(SEND_ENDPOINT)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(validMailRequestJson()))
+                                .andExpect(status().isUnauthorized())
+                                .andExpect(jsonPath("$.error").value("API Key inválida o ausente"));
+        }
 
-    // ── Rechazo con API Key incorrecta → 401 ──
+        // ── Rechazo con API Key incorrecta → 401 ──
 
-    @Test
-    @DisplayName("Debe rechazar request con API Key incorrecta con 401")
-    void shouldRejectRequestWithInvalidApiKey() throws Exception {
-        mockMvc.perform(post(SEND_ENDPOINT)
-                .contentType(MediaType.APPLICATION_JSON)
-                .header("X-API-Key", "clave-incorrecta")
-                .content(validMailRequestJson()))
-                .andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.error").value("API Key inválida o ausente"));
-    }
+        @Test
+        @DisplayName("Debe rechazar request con API Key incorrecta con 401")
+        void shouldRejectRequestWithInvalidApiKey() throws Exception {
+                mockMvc.perform(post(SEND_ENDPOINT)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .header("X-API-Key", "clave-incorrecta")
+                                .content(validMailRequestJson()))
+                                .andExpect(status().isUnauthorized())
+                                .andExpect(jsonPath("$.error").value("API Key inválida o ausente"));
+        }
 
-    // ── Aceptación con API Key correcta → 202 ──
+        // ── Aceptación con API Key correcta → 202 ──
 
-    @Test
-    @DisplayName("Debe aceptar request con API Key válida con 202")
-    void shouldAcceptRequestWithValidApiKey() throws Exception {
-        mockMvc.perform(post(SEND_ENDPOINT)
-                .contentType(MediaType.APPLICATION_JSON)
-                .header("X-API-Key", VALID_API_KEY)
-                .content(validMailRequestJson()))
-                .andExpect(status().isAccepted())
-                .andExpect(jsonPath("$.success").value(true));
-    }
+        @Test
+        @DisplayName("Debe aceptar request con API Key válida con 202")
+        void shouldAcceptRequestWithValidApiKey() throws Exception {
+                mockMvc.perform(post(SEND_ENDPOINT)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .header("X-API-Key", VALID_API_KEY)
+                                .content(validMailRequestJson()))
+                                .andExpect(status().isAccepted())
+                                .andExpect(jsonPath("$.success").value(true));
+        }
 
-    // ── Security Headers presentes ──
+        // ── Security Headers presentes ──
 
-    @Test
-    @DisplayName("Debe incluir security headers en la respuesta")
-    void shouldIncludeSecurityHeaders() throws Exception {
-        mockMvc.perform(post(SEND_ENDPOINT)
-                .contentType(MediaType.APPLICATION_JSON)
-                .header("X-API-Key", VALID_API_KEY)
-                .content(validMailRequestJson()))
-                .andExpect(header().string("X-Content-Type-Options", "nosniff"))
-                .andExpect(header().string("X-Frame-Options", "DENY"))
-                .andExpect(header().string("Cache-Control", "no-cache, no-store, max-age=0, must-revalidate"));
-    }
+        @Test
+        @DisplayName("Debe incluir security headers en la respuesta")
+        void shouldIncludeSecurityHeaders() throws Exception {
+                mockMvc.perform(post(SEND_ENDPOINT)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .header("X-API-Key", VALID_API_KEY)
+                                .content(validMailRequestJson()))
+                                .andExpect(header().string("X-Content-Type-Options", "nosniff"))
+                                .andExpect(header().string("X-Frame-Options", "DENY"))
+                                .andExpect(header().string("Cache-Control",
+                                                "no-cache, no-store, max-age=0, must-revalidate"));
+        }
 
-    // ── Actuator health es público ──
+        // ── Actuator health es público ──
 
-    @Test
-    @DisplayName("Actuator health debe ser accesible sin API Key")
-    void shouldAllowActuatorHealthWithoutApiKey() throws Exception {
-        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
-                .get("/actuator/health"))
-                .andExpect(result -> {
-                    int status = result.getResponse().getStatus();
-                    // 200 = UP, 503 = DOWN (no hay mail server en test). Ambos son válidos.
-                    // Lo importante es que NO sea 401/403 (no requiere API Key).
-                    assertTrue(status == 200 || status == 503,
-                            "Se esperaba 200 o 503, pero fue: " + status);
-                });
-    }
+        @Test
+        @DisplayName("Actuator health debe ser accesible sin API Key")
+        void shouldAllowActuatorHealthWithoutApiKey() throws Exception {
+                mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                                .get("/actuator/health"))
+                                .andExpect(result -> {
+                                        int status = result.getResponse().getStatus();
+                                        // 200 = UP, 503 = DOWN (no hay mail server en test). Ambos son válidos.
+                                        // Lo importante es que NO sea 401/403 (no requiere API Key).
+                                        assertTrue(status == 200 || status == 503,
+                                                        "Se esperaba 200 o 503, pero fue: " + status);
+                                });
+        }
 
-    private String validMailRequestJson() {
-        return """
-                {
-                    "to": "test@ejemplo.com",
-                    "subject": "Test Subject",
-                    "template": "welcome",
-                    "variables": { "nombre": "Carlos" }
-                }
-                """;
-    }
+        // ── Admin: requiere Form Login ──
+
+        @Test
+        @DisplayName("Admin debe redirigir a login sin credenciales")
+        void shouldRedirectToLoginForAdminDashboard() throws Exception {
+                mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                                .get("/admin"))
+                                .andExpect(status().is3xxRedirection())
+                                .andExpect(header().string("Location",
+                                                org.hamcrest.Matchers.containsString("/admin/login")));
+        }
+
+        @Test
+        @DisplayName("Admin login page debe ser accesible sin credenciales")
+        void shouldAllowAccessToLoginPage() throws Exception {
+                mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                                .get("/admin/login"))
+                                .andExpect(status().isOk());
+        }
+
+        @Test
+        @DisplayName("Admin debe permitir acceso con usuario autenticado")
+        void shouldAllowAdminWithValidCredentials() throws Exception {
+                mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                                .get("/admin")
+                                .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors
+                                                .user("admin").roles("ADMIN")))
+                                .andExpect(status().isOk());
+        }
+
+        private String validMailRequestJson() {
+                return """
+                                {
+                                    "to": "test@ejemplo.com",
+                                    "subject": "Test Subject",
+                                    "template": "welcome",
+                                    "variables": { "nombre": "Carlos" }
+                                }
+                                """;
+        }
 }

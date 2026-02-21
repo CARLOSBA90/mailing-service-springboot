@@ -23,6 +23,9 @@
                 <a href="/admin">Dashboard</a>
                 <a href="/admin/logs" class="active">Logs</a>
             </div>
+            <form th:action="@{/admin/logout}" method="post" style="margin: 0;">
+                <button type="submit" class="btn btn-ghost btn-sm">Cerrar Sesión</button>
+            </form>
         </div>
     </nav>
 
@@ -91,7 +94,7 @@
                 <span th:text="${logs.totalElements}">0</span> registros encontrados
             </span>
             <!-- Retry All Failed Button -->
-            <form action="/admin/logs/retry-all-failed" method="post">
+            <form th:action="@{/admin/logs/retry-all-failed}" method="post">
                 <button type="submit" class="btn btn-retry btn-sm"
                     onclick="return confirm('¿Reintentar todos los emails fallidos (máx 5 intentos)?')">
                     🔄 Reintentar Todos los Fallidos

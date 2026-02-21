@@ -32,3 +32,8 @@ mail-service:
   from:
     address: ${MAIL_FROM}
     name: ${MAIL_FROM_NAME}
+
+# Admin UI credentials
+admin:
+  username: ${ADMIN_USERNAME}
+  password: ${ADMIN_PASSWORD}
