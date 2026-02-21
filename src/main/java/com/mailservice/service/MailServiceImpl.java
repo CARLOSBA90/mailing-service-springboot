@@ -16,28 +16,29 @@ import org.springframework.stereotype.Service;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 
 /**
  * Implementación del servicio de mailing.
  * Procesa emails de forma async con reintentos automáticos y persistencia de
  * logs.
+ * Las configuraciones operativas se leen dinámicamente desde ConfigService.
  */
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class MailServiceImpl implements MailService {
 
-    private static final Set<String> ALLOWED_TEMPLATES = Set.of(
-            "welcome", "password-reset", "order-confirmation");
-
-    private static final int MAX_RETRY_ATTEMPTS = 3;
-
     private final JavaMailSender mailSender;
     private final TemplateEngine templateEngine;
     private final MailLogRepository mailLogRepository;
+    private final ConfigService configService;
 
     @Value("${mail-service.from.address}")
     private String fromAddress;
@@ -48,6 +49,26 @@ public class MailServiceImpl implements MailService {
     @Override
     @Async("mailExecutor")
     public CompletableFuture<Void> sendMail(MailRequest request) {
+
+        // ── Guardia 1: servicio habilitado ──────────────────────────────────
+        if (!configService.isServiceEnabled()) {
+            log.warn("Envío bloqueado: servicio deshabilitado | destinatario: {}", request.getTo());
+            throw new IllegalStateException("El servicio de envío está temporalmente deshabilitado.");
+        }
+
+        // ── Guardia 2: límite diario ────────────────────────────────────────
+        LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
+        long sentToday = mailLogRepository.countSentSince(startOfDay);
+        int dailyLimit = configService.getDailySendLimit();
+
+        if (sentToday >= dailyLimit) {
+            log.warn("Envío bloqueado: límite diario alcanzado ({}/{}) | destinatario: {}",
+                    sentToday, dailyLimit, request.getTo());
+            throw new IllegalStateException(
+                    String.format("Límite diario de envíos alcanzado (%d/%d).", sentToday, dailyLimit));
+        }
+
+        // ── Procesamiento normal ────────────────────────────────────────────
         MailLog mailLog = createMailLog(request);
 
         try {
@@ -74,6 +95,10 @@ public class MailServiceImpl implements MailService {
      * Reintenta el envío de un email previamente fallido.
      */
     public CompletableFuture<Void> retryMail(UUID mailLogId) {
+        if (!configService.isServiceEnabled()) {
+            throw new IllegalStateException("El servicio de envío está temporalmente deshabilitado.");
+        }
+
         MailLog mailLog = mailLogRepository.findById(mailLogId)
                 .orElseThrow(() -> new IllegalArgumentException("MailLog no encontrado: " + mailLogId));
 
@@ -109,22 +134,25 @@ public class MailServiceImpl implements MailService {
     }
 
     private void sendWithRetry(String to, String subject, String htmlContent, MailLog mailLog) {
+        int maxAttempts = configService.getMaxRetryAttempts();
+        long delayMs = configService.getRetryCooldownMs();
         int attempt = 0;
-        long delayMs = 2000;
 
-        while (attempt < MAX_RETRY_ATTEMPTS) {
+        while (attempt < maxAttempts) {
             try {
                 attempt++;
                 sendHtmlMessage(to, subject, htmlContent);
                 return; // Éxito
             } catch (Exception e) {
-                log.warn("Intento {}/{} fallido para: {} | Error: {}", attempt, MAX_RETRY_ATTEMPTS, to, e.getMessage());
+                log.warn("Intento {}/{} fallido para: {} | Error: {}", attempt, maxAttempts, to, e.getMessage());
 
-                if (attempt >= MAX_RETRY_ATTEMPTS) {
+                if (attempt >= maxAttempts) {
                     throw new RuntimeException("Máximo de reintentos alcanzado", e);
                 }
 
                 try {
+                    mailLog.markAsRetrying();
+                    mailLogRepository.save(mailLog);
                     Thread.sleep(delayMs);
                     delayMs *= 2; // Backoff exponencial
                 } catch (InterruptedException ie) {
@@ -138,7 +166,13 @@ public class MailServiceImpl implements MailService {
     private String renderTemplate(MailRequest request) {
         String template = request.getTemplate();
 
-        if (!ALLOWED_TEMPLATES.contains(template)) {
+        Set<String> allowedTemplates = Arrays.stream(
+                configService.getAllowedTemplates().split(","))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .collect(Collectors.toSet());
+
+        if (!allowedTemplates.contains(template)) {
             log.warn("Intento de uso de template no permitido: {}", template);
             throw new IllegalArgumentException("Template no permitido: " + template);
         }

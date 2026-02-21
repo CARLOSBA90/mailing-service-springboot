@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Mail Service - Configuración</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" th:href="@{/css/admin.css}">
+    <style>
+        .settings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+            gap: 16px;
+            margin-top: 24px;
+        }
+
+        .settings-card {
+            background: var(--bg2);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px;
+        }
+
+        .settings-card h3 {
+            font-size: 0.78rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--text2);
+            margin-bottom: 16px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .config-row {
+            margin-bottom: 16px;
+        }
+
+        .config-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .config-label {
+            display: block;
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: var(--text);
+            margin-bottom: 4px;
+        }
+
+        .config-desc {
+            font-size: 0.73rem;
+            color: var(--text2);
+            margin-bottom: 6px;
+            line-height: 1.4;
+        }
+
+        .config-input {
+            width: 100%;
+            padding: 7px 10px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            background: var(--bg);
+            color: var(--text);
+            font-size: 0.83rem;
+            font-family: inherit;
+            outline: none;
+            box-sizing: border-box;
+        }
+
+        .config-input:focus {
+            border-color: var(--blue);
+        }
+
+        /* Toggle switch */
+        .toggle-wrap {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-top: 2px;
+        }
+
+        .toggle {
+            position: relative;
+            width: 42px;
+            height: 22px;
+            flex-shrink: 0;
+        }
+
+        .toggle input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            inset: 0;
+            background: var(--bg3);
+            border: 1px solid var(--border);
+            border-radius: 22px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .toggle-slider:before {
+            content: '';
+            position: absolute;
+            left: 3px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 14px;
+            height: 14px;
+            background: var(--text2);
+            border-radius: 50%;
+            transition: left 0.2s, background 0.2s;
+        }
+
+        .toggle input:checked+.toggle-slider {
+            background: rgba(79, 140, 255, 0.15);
+            border-color: var(--blue);
+        }
+
+        .toggle input:checked+.toggle-slider:before {
+            left: 23px;
+            background: var(--blue);
+        }
+
+        .toggle-label {
+            font-size: 0.82rem;
+            color: var(--text);
+        }
+
+        .toggle-on {
+            color: var(--green);
+            font-weight: 600;
+            display: none;
+        }
+
+        .toggle-off {
+            color: var(--red);
+            font-weight: 600;
+            display: none;
+        }
+
+        /* Status banner */
+        .service-banner {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 14px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            margin-bottom: 14px;
+        }
+
+        .service-banner.enabled {
+            background: rgba(52, 211, 153, .08);
+            border: 1px solid rgba(52, 211, 153, .2);
+            color: var(--green);
+        }
+
+        .service-banner.disabled {
+            background: rgba(248, 113, 113, .08);
+            border: 1px solid rgba(248, 113, 113, .2);
+            color: var(--red);
+        }
+
+        /* Daily limit progress */
+        .limit-bar-wrap {
+            margin-top: 8px;
+        }
+
+        .limit-bar-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.73rem;
+            color: var(--text2);
+            margin-bottom: 5px;
+        }
+
+        .limit-bar {
+            height: 4px;
+            border-radius: 2px;
+            background: var(--bg3);
+            overflow: hidden;
+        }
+
+        .limit-bar-fill {
+            height: 100%;
+            border-radius: 2px;
+            background: var(--blue);
+            transition: width 0.3s;
+        }
+
+        .limit-bar-fill.warn {
+            background: var(--yellow);
+        }
+
+        .limit-bar-fill.crit {
+            background: var(--red);
+        }
+
+        /* Save button */
+        .settings-actions {
+            margin-top: 24px;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        .btn-save {
+            padding: 9px 22px;
+            border-radius: 6px;
+            border: none;
+            background: var(--blue);
+            color: #fff;
+            font-size: 0.83rem;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+        }
+
+        .btn-save:hover {
+            opacity: 0.85;
+        }
+
+        /* Alert */
+        .alert-success {
+            padding: 10px 14px;
+            border-radius: 6px;
+            background: rgba(52, 211, 153, .08);
+            border: 1px solid rgba(52, 211, 153, .2);
+            color: var(--green);
+            font-size: 0.8rem;
+            margin-bottom: 16px;
+        }
+
+        .page-header {
+            padding: 28px 0 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .page-header h1 {
+            font-size: 1.15rem;
+            font-weight: 600;
+        }
+
+        .page-header p {
+            font-size: 0.8rem;
+            color: var(--text2);
+            margin-top: 3px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Navbar -->
+    <nav class="admin-nav">
+        <div class="nav-inner">
+            <div class="nav-brand">
+                <span class="brand-icon">📬</span>
+                <span>Mail Service</span>
+            </div>
+            <div class="nav-links">
+                <a href="/admin">Dashboard</a>
+                <a href="/admin/logs">Logs</a>
+                <a href="/admin/settings" class="active">Configuración</a>
+            </div>
+            <form th:action="@{/admin/logout}" method="post" style="margin: 0;">
+                <button type="submit" class="btn btn-ghost btn-sm">Cerrar Sesión</button>
+            </form>
+        </div>
+    </nav>
+
+    <div class="admin-container">
+
+        <!-- Header -->
+        <div class="page-header">
+            <div>
+                <h1>⚙️ Configuración</h1>
+                <p>Parámetros operativos del servicio — cambios en tiempo real, sin reiniciar</p>
+            </div>
+        </div>
+
+        <!-- Success alert -->
+        <div class="alert-success" th:if="${successMessage}" th:text="${successMessage}"></div>
+
+        <!-- Service banner -->
+        <div th:class="${serviceEnabled} ? 'service-banner enabled' : 'service-banner disabled'"
+            style="margin-top: 20px;">
+            <span
+                th:text="${serviceEnabled} ? '✅ Servicio activo — los emails se están enviando' : '🔴 Servicio deshabilitado — los emails están bloqueados'">Estado</span>
+        </div>
+
+        <!-- Daily limit progress -->
+        <div class="settings-card" style="margin-top: 0; margin-bottom: 4px; padding: 14px 20px;">
+            <div class="limit-bar-label">
+                <span>Envíos hoy</span>
+                <span th:text="${sentToday} + ' / ' + ${dailyLimit}">0 / 300</span>
+            </div>
+            <div class="limit-bar">
+                <div class="limit-bar-fill"
+                    th:classappend="${limitPercent >= 100} ? 'crit' : (${limitPercent >= 80} ? 'warn' : '')"
+                    th:style="'width: ' + ${limitPercent} + '%'">
+                </div>
+            </div>
+        </div>
+
+        <form th:action="@{/admin/settings}" method="post">
+
+            <div class="settings-grid">
+
+                <!-- Envío -->
+                <div class="settings-card">
+                    <h3>📤 Envío</h3>
+
+                    <!-- service_enabled -->
+                    <div class="config-row">
+                        <label class="config-label">Estado del servicio</label>
+                        <p class="config-desc">Habilita o deshabilita el envío de emails. Al deshabilitar, las requests
+                            a la API retornarán error 503.</p>
+                        <div class="toggle-wrap">
+                            <label class="toggle">
+                                <input type="checkbox" name="service_enabled" value="true"
+                                    th:checked="${serviceEnabled}"
+                                    onchange="this.form.querySelector('[data-key=service_enabled]').value = this.checked ? 'true' : 'false'">
+                                <span class="toggle-slider"></span>
+                            </label>
+                            <input type="hidden" name="service_enabled" th:value="${serviceEnabled ? 'true' : 'false'}"
+                                data-key="service_enabled">
+                            <span class="toggle-label"
+                                th:text="${serviceEnabled} ? 'Habilitado' : 'Deshabilitado'">Estado</span>
+                        </div>
+                    </div>
+
+                    <!-- daily_send_limit -->
+                    <div class="config-row">
+                        <label class="config-label" for="daily_send_limit">Límite diario de envíos</label>
+                        <p class="config-desc">Máximo de emails por día (00:00 a 23:59). Al superarse, la API responderá
+                            con error.</p>
+                        <input type="number" id="daily_send_limit" name="daily_send_limit" class="config-input" min="1"
+                            max="10000" th:value="${dailyLimit}">
+                    </div>
+                </div>
+
+                <!-- Reintentos -->
+                <div class="settings-card">
+                    <h3>🔄 Reintentos</h3>
+
+                    <!-- max_retry_attempts -->
+                    <div class="config-row" th:each="c : ${configs}" th:if="${c.configKey == 'max_retry_attempts'}">
+                        <label class="config-label" th:for="${c.configKey}"
+                            th:text="${c.description}">Descripción</label>
+                        <p class="config-desc">Rango recomendado: 1 – 5. Cada reintento aplica espera exponencial.</p>
+                        <input type="number" th:id="${c.configKey}" th:name="${c.configKey}" class="config-input"
+                            min="1" max="10" th:value="${c.configValue}">
+                    </div>
+
+                    <!-- retry_cooldown_ms -->
+                    <div class="config-row" th:each="c : ${configs}" th:if="${c.configKey == 'retry_cooldown_ms'}">
+                        <label class="config-label" th:for="${c.configKey}"
+                            th:text="${c.description}">Descripción</label>
+                        <p class="config-desc">Tiempo en milisegundos. Cada reintento duplica este valor (exponential
+                            backoff).</p>
+                        <input type="number" th:id="${c.configKey}" th:name="${c.configKey}" class="config-input"
+                            min="500" max="60000" step="500" th:value="${c.configValue}">
+                    </div>
+                </div>
+
+                <!-- Templates -->
+                <div class="settings-card">
+                    <h3>📝 Templates</h3>
+
+                    <!-- allowed_templates -->
+                    <div class="config-row" th:each="c : ${configs}" th:if="${c.configKey == 'allowed_templates'}">
+                        <label class="config-label" th:for="${c.configKey}">Templates habilitados</label>
+                        <p class="config-desc">Separados por coma. Solo estos templates pueden ser usados en la API.
+                            Ejemplo: <code th:text="${c.configValue}"></code></p>
+                        <input type="text" th:id="${c.configKey}" th:name="${c.configKey}" class="config-input"
+                            th:value="${c.configValue}" placeholder="welcome,password-reset">
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="settings-actions">
+                <a href="/admin" class="btn btn-ghost btn-sm"
+                    style="padding: 9px 18px; display: inline-block; border: 1px solid var(--border); border-radius: 6px; color: var(--text2); font-size: 0.83rem; text-decoration: none;">Cancelar</a>
+                <button type="submit" class="btn-save">Guardar cambios</button>
+            </div>
+
+        </form>
+
+    </div>
+
+    <script>
+        // Sync toggle checkbox hidden input
+        document.querySelectorAll('.toggle input[type="checkbox"]').forEach(cb => {
+            cb.addEventListener('change', function () {
+                const key = this.name;
+                const hiddenInputs = document.querySelectorAll(`input[type=hidden][data-key="${key}"]`);
+                hiddenInputs.forEach(h => h.value = this.checked ? 'true' : 'false');
+                // Update label
+                const label = this.closest('.toggle-wrap').querySelector('.toggle-label');
+                if (label) label.textContent = this.checked ? 'Habilitado' : 'Deshabilitado';
+            });
+        });
+    </script>
+
+</body>
+
+</html>

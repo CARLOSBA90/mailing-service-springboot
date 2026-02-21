@@ -140,7 +140,7 @@ public class SecurityConfig {
                         .frameOptions(frame -> frame.deny())
                         .cacheControl(Customizer.withDefaults()))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/actuator/health", "/favicon.ico").permitAll()
+                        .requestMatchers("/actuator/health", "/favicon.ico", "/error").permitAll()
                         .anyRequest().authenticated())
                 .addFilterBefore(createApiKeyFilter(), UsernamePasswordAuthenticationFilter.class);
 
@@ -159,8 +159,8 @@ public class SecurityConfig {
 
                 String path = request.getRequestURI();
 
-                // Rutas públicas (actuator, favicon)
-                if (path.startsWith("/actuator") || path.equals("/favicon.ico")) {
+                // Rutas públicas (actuator, favicon, error)
+                if (path.startsWith("/actuator") || path.equals("/favicon.ico") || path.equals("/error")) {
                     filterChain.doFilter(request, response);
                     return;
                 }

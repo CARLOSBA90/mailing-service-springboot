@@ -3,6 +3,8 @@ package com.mailservice.controller;
 import com.mailservice.entity.MailLog;
 import com.mailservice.entity.MailStatus;
 import com.mailservice.repository.MailLogRepository;
+import com.mailservice.service.ConfigService;
+import com.mailservice.service.ConfigServiceImpl;
 import com.mailservice.service.MailService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -14,7 +16,10 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -29,6 +34,7 @@ public class AdminController {
 
     private final MailLogRepository mailLogRepository;
     private final MailService mailService;
+    private final ConfigService configService;
 
     /**
      * Página de login.
@@ -43,7 +49,7 @@ public class AdminController {
      */
     @GetMapping
     public String dashboard(Model model) {
-        LocalDateTime today = LocalDateTime.now().withHour(0).withMinute(0).withSecond(0);
+        LocalDateTime today = LocalDate.now().atStartOfDay();
 
         model.addAttribute("totalEmails", mailLogRepository.count());
         model.addAttribute("sent", mailLogRepository.countByStatus(MailStatus.SENT));
@@ -195,5 +201,53 @@ public class AdminController {
                 String.format("Reintento batch iniciado: %d emails encolados", count));
         log.info("Reintento batch desde Admin UI | cantidad: {}", count);
         return "redirect:/admin/logs";
+    }
+
+    /**
+     * Página de configuración del sistema.
+     */
+    @GetMapping("/settings")
+    public String settings(Model model) {
+        long sentToday = mailLogRepository.countSentSince(LocalDate.now().atStartOfDay());
+        int dailyLimit = configService.getDailySendLimit();
+        int limitPercent = dailyLimit > 0 ? (int) Math.min(sentToday * 100L / dailyLimit, 100) : 0;
+
+        model.addAttribute("configs", configService.getAllConfigs());
+        model.addAttribute("serviceEnabled", configService.isServiceEnabled());
+        model.addAttribute("dailyLimit", dailyLimit);
+        model.addAttribute("sentToday", sentToday);
+        model.addAttribute("limitPercent", limitPercent);
+        return "admin/settings";
+    }
+
+    /**
+     * Actualiza configuraciones del sistema.
+     * Solo se permiten claves conocidas para evitar inyección arbitraria.
+     */
+    @PostMapping("/settings")
+    public String updateSettings(
+            @RequestParam Map<String, String> params,
+            RedirectAttributes redirectAttributes) {
+
+        // Whitelist de claves permitidas
+        Set<String> allowedKeys = Set.of(
+                ConfigServiceImpl.KEY_DAILY_LIMIT,
+                ConfigServiceImpl.KEY_SERVICE_ENABLED,
+                ConfigServiceImpl.KEY_MAX_RETRIES,
+                ConfigServiceImpl.KEY_RETRY_COOLDOWN,
+                ConfigServiceImpl.KEY_ALLOWED_TEMPLATES);
+
+        int updated = 0;
+        for (Map.Entry<String, String> entry : params.entrySet()) {
+            String key = entry.getKey();
+            if (allowedKeys.contains(key) && entry.getValue() != null) {
+                configService.updateConfig(key, entry.getValue().trim());
+                updated++;
+            }
+        }
+
+        log.info("Configuración actualizada desde Admin UI | campos: {}", updated);
+        redirectAttributes.addFlashAttribute("successMessage", "Configuración guardada correctamente");
+        return "redirect:/admin/settings";
     }
 }
