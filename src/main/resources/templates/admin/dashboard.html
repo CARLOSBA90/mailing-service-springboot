@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mail Service - Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" th:href="@{/css/admin.css}">
+</head>
+
+<body>
+
+    <!-- Navbar -->
+    <nav class="admin-nav">
+        <div class="nav-inner">
+            <div class="nav-brand">
+                <span class="brand-icon">📬</span>
+                <span>Mail Service</span>
+            </div>
+            <div class="nav-links">
+                <a href="/admin" class="active">Dashboard</a>
+                <a href="/admin/logs">Logs</a>
+                <a href="/admin/settings">Configuración</a>
+            </div>
+            <form th:action="@{/admin/logout}" method="post" style="margin: 0;">
+                <button type="submit" class="btn btn-ghost btn-sm">Cerrar Sesión</button>
+            </form>
+        </div>
+    </nav>
+
+    <div class="admin-container">
+        <!-- Header -->
+        <div class="page-header">
+            <h1>Dashboard</h1>
+            <p>Monitoreo en tiempo real del servicio de emails</p>
+        </div>
+
+        <!-- Stats -->
+        <div class="stats-grid">
+            <div class="stat-card stat-total">
+                <div class="stat-label">Total Emails</div>
+                <div class="stat-value" th:text="${totalEmails}">0</div>
+            </div>
+            <div class="stat-card stat-sent">
+                <div class="stat-label">Enviados</div>
+                <div class="stat-value" th:text="${sent}">0</div>
+            </div>
+            <div class="stat-card stat-failed">
+                <div class="stat-label">Fallidos</div>
+                <div class="stat-value" th:text="${failed}">0</div>
+            </div>
+            <div class="stat-card stat-pending">
+                <div class="stat-label">Pendientes</div>
+                <div class="stat-value" th:text="${pending}">0</div>
+            </div>
+            <div class="stat-card stat-retrying">
+                <div class="stat-label">Reintentando</div>
+                <div class="stat-value" th:text="${retrying}">0</div>
+            </div>
+            <div class="stat-card stat-sent">
+                <div class="stat-label">Enviados Hoy</div>
+                <div class="stat-value" th:text="${sentToday}">0</div>
+            </div>
+            <div class="stat-card stat-failed">
+                <div class="stat-label">Fallidos Hoy</div>
+                <div class="stat-value" th:text="${failedToday}">0</div>
+            </div>
+        </div>
+
+        <!-- Recent Logs -->
+        <div class="card">
+            <div class="card-header">
+                <h2>Últimos Emails</h2>
+                <a href="/admin/logs" class="btn btn-ghost btn-sm">Ver todos →</a>
+            </div>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Destinatario</th>
+                            <th>Asunto</th>
+                            <th>Template</th>
+                            <th>Estado</th>
+                            <th>Intentos</th>
+                            <th>Fecha</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="log : ${recentLogs}">
+                            <td class="primary-col" th:text="${log.recipient}">—</td>
+                            <td th:text="${log.subject}">—</td>
+                            <td th:text="${log.templateName}">—</td>
+                            <td>
+                                <span class="badge"
+                                    th:classappend="${log.status.name() == 'SENT'} ? 'badge-sent' : (${log.status.name() == 'FAILED'} ? 'badge-failed' : (${log.status.name() == 'PENDING'} ? 'badge-pending' : 'badge-retrying'))"
+                                    th:text="${log.status}">SENT</span>
+                            </td>
+                            <td th:text="${log.attempts}">0</td>
+                            <td th:text="${#temporals.format(log.createdAt, 'dd/MM/yyyy HH:mm')}">—</td>
+                        </tr>
+                        <tr th:if="${#lists.isEmpty(recentLogs)}">
+                            <td colspan="6">
+                                <div class="empty-state">
+                                    <div class="empty-icon">📭</div>
+                                    <p>Aún no hay emails registrados</p>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+</body>
+
+</html>

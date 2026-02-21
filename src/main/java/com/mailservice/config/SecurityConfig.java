@@ -9,12 +9,18 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
 import org.springframework.core.env.Environment;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -28,9 +34,9 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * Seguridad basada en API Key para comunicación inter-servicios.
- * Incluye: constant-time comparison, rate limiting, logging de auth fallida,
- * security headers, y validación de API Key por perfil.
+ * Configuración de seguridad con dos cadenas separadas:
+ * 1. Admin UI — HTTP Basic Auth + CSRF + Sesiones
+ * 2. API REST — Stateless + API Key + Sin CSRF
  */
 @Configuration
 @EnableWebSecurity
@@ -38,11 +44,19 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class SecurityConfig {
 
     private static final String DEV_API_KEY = "dev-api-key-change-me";
+    private static final int MAX_REQUESTS_PER_MINUTE = 30;
 
     @Value("${mail-service.api-key}")
     private String apiKey;
 
+    @Value("${admin.username:admin}")
+    private String adminUsername;
+
+    @Value("${admin.password:admin123}")
+    private String adminPassword;
+
     private final Environment environment;
+    private final Map<String, RateLimitEntry> rateLimitMap = new ConcurrentHashMap<>();
 
     public SecurityConfig(Environment environment) {
         this.environment = environment;
@@ -63,28 +77,80 @@ public class SecurityConfig {
         }
     }
 
-    private static final int MAX_REQUESTS_PER_MINUTE = 30;
-    private final Map<String, RateLimitEntry> rateLimitMap = new ConcurrentHashMap<>();
+    // ── Usuarios para Admin UI ──
 
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
+
+    @Bean
+    public UserDetailsService userDetailsService() {
+        var admin = User.builder()
+                .username(adminUsername)
+                .password(passwordEncoder().encode(adminPassword))
+                .roles("ADMIN")
+                .build();
+        return new InMemoryUserDetailsManager(admin);
+    }
+
+    // ── Cadena 1: Admin UI — HTTP Basic + CSRF + Sesiones ──
+
+    @Bean
+    @Order(1)
+    public SecurityFilterChain adminFilterChain(HttpSecurity http) throws Exception {
         http
+                .securityMatcher("/admin/**", "/css/**", "/js/**")
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/css/**", "/js/**").permitAll()
+                        .requestMatchers("/admin/login").permitAll()
+                        .requestMatchers("/admin/**").hasRole("ADMIN"))
+                .formLogin(form -> form
+                        .loginPage("/admin/login")
+                        .loginProcessingUrl("/admin/login")
+                        .defaultSuccessUrl("/admin", true)
+                        .failureUrl("/admin/login?error")
+                        .permitAll())
+                .logout(logout -> logout
+                        .logoutUrl("/admin/logout")
+                        .logoutSuccessUrl("/admin/login?logout")
+                        .permitAll())
+                .sessionManagement(session -> session
+                        .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
+                .headers(headers -> headers
+                        .contentTypeOptions(Customizer.withDefaults())
+                        .frameOptions(frame -> frame.deny())
+                        .cacheControl(Customizer.withDefaults()));
+
+        return http.build();
+    }
+
+    // ── Cadena 2: API REST — Stateless + API Key + Sin CSRF ──
+
+    @Bean
+    @Order(2)
+    public SecurityFilterChain apiFilterChain(HttpSecurity http) throws Exception {
+        http
+                .securityMatcher("/**")
                 .csrf(csrf -> csrf.disable())
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .sessionManagement(session -> session
+                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .headers(headers -> headers
                         .contentTypeOptions(Customizer.withDefaults())
                         .frameOptions(frame -> frame.deny())
                         .cacheControl(Customizer.withDefaults()))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/actuator/health").permitAll()
+                        .requestMatchers("/actuator/health", "/favicon.ico", "/error").permitAll()
                         .anyRequest().authenticated())
-                .addFilterBefore(apiKeyFilter(), UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(createApiKeyFilter(), UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
 
-    @Bean
-    public OncePerRequestFilter apiKeyFilter() {
+    // ── Filtro de API Key (solo para API REST, NO es un @Bean para evitar
+    // auto-registro) ──
+
+    private OncePerRequestFilter createApiKeyFilter() {
         return new OncePerRequestFilter() {
             @Override
             protected void doFilterInternal(HttpServletRequest request,
@@ -93,7 +159,8 @@ public class SecurityConfig {
 
                 String path = request.getRequestURI();
 
-                if (path.startsWith("/actuator")) {
+                // Rutas públicas (actuator, favicon, error)
+                if (path.startsWith("/actuator") || path.equals("/favicon.ico") || path.equals("/error")) {
                     filterChain.doFilter(request, response);
                     return;
                 }
@@ -133,12 +200,9 @@ public class SecurityConfig {
 
     /**
      * Rate limiting simple por IP usando ventana de tiempo fija (1 minuto).
-     * Limpia entradas expiradas en cada verificación para evitar memory leaks.
      */
     private boolean isRateLimited(String clientIp) {
         long now = System.currentTimeMillis();
-
-        // Limpiar entradas expiradas periódicamente
         rateLimitMap.entrySet().removeIf(entry -> now - entry.getValue().windowStart > 60_000);
 
         RateLimitEntry entry = rateLimitMap.compute(clientIp, (key, existing) -> {

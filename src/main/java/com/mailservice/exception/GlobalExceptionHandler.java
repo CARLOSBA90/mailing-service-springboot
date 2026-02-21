@@ -1,5 +1,7 @@
 package com.mailservice.exception;
 
+import com.mailservice.controller.MailController;
+import com.mailservice.controller.MailLogController;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -11,9 +13,10 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
- * Manejo global de excepciones para respuestas consistentes.
+ * Manejo de excepciones para la API REST (solo @RestController).
+ * Rutas admin se manejan con la página error.html de Thymeleaf.
  */
-@RestControllerAdvice
+@RestControllerAdvice(assignableTypes = { MailController.class, MailLogController.class })
 @Slf4j
 public class GlobalExceptionHandler {
 

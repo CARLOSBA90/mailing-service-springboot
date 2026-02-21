@@ -15,8 +15,25 @@ spring:
           starttls:
             enable: ${SPRING_MAIL_STARTTLS:true}
 
+  # Database (desde variables de entorno)
+  datasource:
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
+
+  # JPA en producción
+  jpa:
+    hibernate:
+      ddl-auto: validate  # No modifica el schema en producción
+    show-sql: false       # No mostrar SQL en producción
+
 mail-service:
   api-key: ${API_KEY}
   from:
     address: ${MAIL_FROM}
     name: ${MAIL_FROM_NAME}
+
+# Admin UI credentials
+admin:
+  username: ${ADMIN_USERNAME}
+  password: ${ADMIN_PASSWORD}
