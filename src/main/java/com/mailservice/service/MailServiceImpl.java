@@ -46,29 +46,49 @@ public class MailServiceImpl implements MailService {
     @Value("${mail-service.from.name}")
     private String fromName;
 
+    /**
+     * Validación síncrona que el controller debe llamar ANTES de encolar.
+     * Valida: servicio habilitado, límite diario y whitelist de templates.
+     *
+     * @throws IllegalStateException    si el servicio está deshabilitado o el
+     *                                  límite diario se alcanzó.
+     * @throws IllegalArgumentException si el template no está en la whitelist.
+     */
     @Override
-    @Async("mailExecutor")
-    public CompletableFuture<Void> sendMail(MailRequest request) {
-
-        // ── Guardia 1: servicio habilitado ──────────────────────────────────
+    public void validateBeforeSend(MailRequest request) {
+        // Guardia 1: servicio habilitado
         if (!configService.isServiceEnabled()) {
-            log.warn("Envío bloqueado: servicio deshabilitado | destinatario: {}", request.getTo());
+            log.warn("Envío rechazado: servicio deshabilitado | destinatario: {}", request.getTo());
             throw new IllegalStateException("El servicio de envío está temporalmente deshabilitado.");
         }
 
-        // ── Guardia 2: límite diario ────────────────────────────────────────
+        // Guardia 2: límite diario
         LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
         long sentToday = mailLogRepository.countSentSince(startOfDay);
         int dailyLimit = configService.getDailySendLimit();
 
         if (sentToday >= dailyLimit) {
-            log.warn("Envío bloqueado: límite diario alcanzado ({}/{}) | destinatario: {}",
+            log.warn("Envío rechazado: límite diario alcanzado ({}/{}) | destinatario: {}",
                     sentToday, dailyLimit, request.getTo());
             throw new IllegalStateException(
-                    String.format("Límite diario de envíos alcanzado (%d/%d).", sentToday, dailyLimit));
+                    String.format("Límite diario de envíos alcanzado."));
         }
 
-        // ── Procesamiento normal ────────────────────────────────────────────
+        // Guardia 3: template en whitelist
+        Set<String> allowed = resolveAllowedTemplates();
+        if (!allowed.contains(request.getTemplate())) {
+            log.warn("Envío rechazado: template no permitido '{}' | destinatario: {}",
+                    request.getTemplate(), request.getTo());
+            throw new IllegalArgumentException(
+                    "Template no permitido: '" + request.getTemplate() + "'");
+        }
+    }
+
+    @Override
+    @Async("mailExecutor")
+    public CompletableFuture<Void> sendMail(MailRequest request) {
+        // Las guardias de negocio ya fueron validadas de forma síncrona
+        // en el controller antes de llegar aquí.
         MailLog mailLog = createMailLog(request);
 
         try {
@@ -163,25 +183,25 @@ public class MailServiceImpl implements MailService {
         }
     }
 
-    private String renderTemplate(MailRequest request) {
-        String template = request.getTemplate();
-
-        Set<String> allowedTemplates = Arrays.stream(
-                configService.getAllowedTemplates().split(","))
+    /**
+     * Parsea la whitelist de templates desde ConfigService.
+     * Reutilizado tanto en la validación síncrona como en el render.
+     */
+    private Set<String> resolveAllowedTemplates() {
+        return Arrays.stream(configService.getAllowedTemplates().split(","))
                 .map(String::trim)
                 .filter(s -> !s.isEmpty())
                 .collect(Collectors.toSet());
+    }
 
-        if (!allowedTemplates.contains(template)) {
-            log.warn("Intento de uso de template no permitido: {}", template);
-            throw new IllegalArgumentException("Template no permitido: " + template);
-        }
-
+    private String renderTemplate(MailRequest request) {
+        // La validación del template ya fue hecha en validateBeforeSend().
+        // Aquí solo se renderiza.
         Context context = new Context();
         if (request.getVariables() != null) {
             request.getVariables().forEach(context::setVariable);
         }
-        return templateEngine.process("mail/" + template, context);
+        return templateEngine.process("mail/" + request.getTemplate(), context);
     }
 
     private void sendHtmlMessage(String to, String subject, String htmlContent)

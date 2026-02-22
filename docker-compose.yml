@@ -21,7 +21,7 @@ services:
     networks:
       - mail-network
 
-  # Mail Service Application (para producción)
+  # Mail Service Application (para produccion)
   mail-service:
     build: .
     container_name: mail-service-app

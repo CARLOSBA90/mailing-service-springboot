@@ -27,6 +27,24 @@ public class MailController {
     @PostMapping("/send")
     public ResponseEntity<MailResponse> sendMail(@Valid @RequestBody MailRequest request) {
         log.info("Request recibido - To: {} | Template: {}", request.getTo(), request.getTemplate());
+
+        // async
+        try {
+            mailService.validateBeforeSend(request);
+        } catch (IllegalArgumentException e) {
+            // Template no está en la whitelist → 400 Bad Request
+            log.warn("Envío rechazado: template inválido | Razón: {}", e.getMessage());
+            return ResponseEntity
+                    .status(HttpStatus.BAD_REQUEST)
+                    .body(MailResponse.error(e.getMessage()));
+        } catch (IllegalStateException e) {
+            // Servicio deshabilitado o límite diario → 409 Conflict
+            log.warn("Envío rechazado antes de encolar | Razón: {}", e.getMessage());
+            return ResponseEntity
+                    .status(HttpStatus.CONFLICT)
+                    .body(MailResponse.error(e.getMessage()));
+        }
+
         mailService.sendMail(request);
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(MailResponse.queued());
     }
