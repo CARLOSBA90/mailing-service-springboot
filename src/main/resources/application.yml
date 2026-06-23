@@ -17,9 +17,9 @@ spring:
     properties:
       mail:
         smtp:
-          auth: ${SPRING_MAIL_AUTH}
+          auth: ${SPRING_MAIL_AUTH:false}
           starttls:
-            enable: ${SPRING_MAIL_STARTTLS}
+            enable: ${SPRING_MAIL_STARTTLS:false}
     default-encoding: UTF-8
 
   thymeleaf:
@@ -32,8 +32,8 @@ spring:
   # Database
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/mailservice}
-    username: ${SPRING_DATASOURCE_USERNAME:}
-    password: ${SPRING_DATASOURCE_PASSWORD:}
+    username: ${SPRING_DATASOURCE_USERNAME:mailuser}
+    password: ${SPRING_DATASOURCE_PASSWORD:tu_contrasena_segura}
     driver-class-name: org.postgresql.Driver
     hikari:
       maximum-pool-size: 10

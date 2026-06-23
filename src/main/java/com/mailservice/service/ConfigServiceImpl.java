@@ -30,6 +30,8 @@ public class ConfigServiceImpl implements ConfigService {
     public static final String KEY_MAX_RETRIES = "max_retry_attempts";
     public static final String KEY_RETRY_COOLDOWN = "retry_cooldown_ms";
     public static final String KEY_ALLOWED_TEMPLATES = "allowed_templates";
+    public static final String KEY_PURGE_RETENTION_MONTHS = "purge_retention_months";
+    public static final String KEY_PURGE_CRON = "purge_cron";
 
     private final ServiceConfigRepository configRepository;
 
@@ -51,6 +53,10 @@ public class ConfigServiceImpl implements ConfigService {
                 "Tiempo de espera inicial entre reintentos (ms), aplica backoff exponencial");
         initIfAbsent(KEY_ALLOWED_TEMPLATES, "welcome,password-reset,order-confirmation",
                 "STRING", "Templates habilitados para envío (separados por coma)");
+        initIfAbsent(KEY_PURGE_RETENTION_MONTHS, "6", "INTEGER",
+                "Meses de retención de logs de email (0 = sin depuración)");
+        initIfAbsent(KEY_PURGE_CRON, "0 0 3 1 1,7 *", "STRING",
+                "Expresión cron para la depuración automática de logs (semestral por defecto)");
         log.info("ConfigService inicializado con {} configuraciones", configRepository.count());
     }
 

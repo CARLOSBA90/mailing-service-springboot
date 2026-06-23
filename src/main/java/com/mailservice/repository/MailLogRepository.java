@@ -46,4 +46,10 @@ public interface MailLogRepository extends JpaRepository<MailLog, UUID> {
     // Estadísticas: Total fallidos hoy
     @Query("SELECT COUNT(m) FROM MailLog m WHERE m.status = 'FAILED' AND m.createdAt >= :since")
     long countFailedSince(LocalDateTime since);
+
+    // Mantenimiento: contar logs anteriores a una fecha (para preview de purga)
+    long countByCreatedAtBefore(LocalDateTime cutoff);
+
+    // Mantenimiento: eliminar logs anteriores a una fecha (purga efectiva)
+    int deleteByCreatedAtBefore(LocalDateTime cutoff);
 }

@@ -210,18 +210,28 @@ git clone https://github.com/tu-usuario/mailing-service-springboot.git
 cd mailing-service-springboot
 ```
 
-### 2. Levantar PostgreSQL (desarrollo)
+### 2. Levantar PostgreSQL (desarrollo) — Opción recomendada
 
 ```bash
-# Levanta solo la base de datos con Docker Compose
-docker compose up -d postgres
+# Levanta solo la base de datos con el compose de dev (un solo comando)
+docker compose -f docker-compose.dev.yml up -d
 ```
 
-Esto crea una instancia de PostgreSQL con:
+Esto crea un contenedor llamado **`mailing-service-base`** con:
 - **DB:** `mailservice`
 - **User:** `mailuser`
-- **Password:** `mailpass123`
+- **Password:** `tu_contrasena_segura`
 - **Puerto:** `5432`
+- **Volumen persistente:** `mailing-service-base-pgdata` (los datos sobreviven reinicios)
+
+> **Alternativa manual** (sin compose):
+> ```bash
+> docker run -d --name mailing-service-base \
+>   -e POSTGRES_DB=mailservice \
+>   -e POSTGRES_USER=mailuser \
+>   -e POSTGRES_PASSWORD=tu_contrasena_segura \
+>   -p 5432:5432 postgres:16-alpine
+> ```
 
 ### 3. Configurar variables de entorno
 
@@ -231,18 +241,18 @@ Esto crea una instancia de PostgreSQL con:
 
 | Variable | Descripción | Default (Dev) | Requerida en Prod |
 |---|---|---|---|
-| `API_KEY` | Clave API para autenticar requests REST | `dev-api-key-change-me` | ✅ **Sí** |
+| `API_KEY` | Clave API para autenticar requests REST | `dev-api-key-insecure` | ✅ **Sí** |
 | `ADMIN_USERNAME` | Usuario del panel de administración | `admin` | ✅ Sí |
 | `ADMIN_PASSWORD` | Contraseña del panel de administración | `admin123` | ✅ Sí |
 | `SPRING_DATASOURCE_URL` | URL de conexión a PostgreSQL | `jdbc:postgresql://localhost:5432/mailservice` | ✅ Sí |
 | `SPRING_DATASOURCE_USERNAME` | Usuario de la base de datos | `mailuser` | ✅ Sí |
-| `SPRING_DATASOURCE_PASSWORD` | Contraseña de la base de datos | `mailpass123` | ✅ Sí |
+| `SPRING_DATASOURCE_PASSWORD` | Contraseña de la base de datos | `tu_contrasena_segura` | ✅ Sí |
 | `SPRING_MAIL_HOST` | Host del servidor SMTP | `localhost` | ✅ Sí |
 | `SPRING_MAIL_PORT` | Puerto SMTP | `25` | ✅ Sí |
 | `SPRING_MAIL_USERNAME` | Usuario SMTP (si aplica) | _(vacío)_ | ✅ Sí |
 | `SPRING_MAIL_PASSWORD` | Contraseña SMTP (si aplica) | _(vacío)_ | ✅ Sí |
-| `MAIL_FROM` | Email del remitente | `no-reply@tudominio.com` | Recomendado |
-| `MAIL_FROM_NAME` | Nombre visible del remitente | `Mi Tienda` | Opcional |
+| `MAIL_FROM` | Email del remitente | `no-reply@localhost` | Recomendado |
+| `MAIL_FROM_NAME` | Nombre visible del remitente | `MailService Dev` | Opcional |
 
 > **🔑 Generar API Key segura:**
 > ```powershell

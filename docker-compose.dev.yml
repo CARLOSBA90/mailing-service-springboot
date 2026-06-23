@@ -1,0 +1,34 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# docker-compose.dev.yml  —  Entorno de DESARROLLO LOCAL
+# ──────────────────────────────────────────────────────────────────────────────
+# Levanta únicamente la base de datos PostgreSQL para desarrollo.
+# La aplicación Spring Boot corre directamente con: mvn spring-boot:run
+#
+# Uso:
+#   docker compose -f docker-compose.dev.yml up -d          # Levanta la DB
+#   docker compose -f docker-compose.dev.yml down           # Detiene y elimina
+#   docker compose -f docker-compose.dev.yml down -v        # Elimina también el volumen
+# ──────────────────────────────────────────────────────────────────────────────
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: mailing-service-base
+    environment:
+      POSTGRES_DB: mailservice
+      POSTGRES_USER: mailuser
+      POSTGRES_PASSWORD: tu_contrasena_segura
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U mailuser -d mailservice" ]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  postgres_dev_data:
+    name: mailing-service-base-pgdata
