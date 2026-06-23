@@ -227,6 +227,43 @@
             opacity: 0.85;
         }
 
+        /* Cron preset buttons */
+        .preset-btn {
+            padding: 4px 10px;
+            border-radius: 4px;
+            border: 1px solid var(--border);
+            background: var(--bg3);
+            color: var(--text2);
+            font-size: 0.73rem;
+            font-family: inherit;
+            cursor: pointer;
+            transition: border-color 0.15s, color 0.15s;
+        }
+
+        .preset-btn:hover {
+            border-color: var(--blue);
+            color: var(--blue);
+        }
+
+        /* Purge now button */
+        .btn-purge {
+            padding: 7px 16px;
+            border-radius: 6px;
+            border: 1px solid rgba(248, 113, 113, 0.4);
+            background: rgba(248, 113, 113, 0.08);
+            color: var(--red);
+            font-size: 0.8rem;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            transition: background 0.15s, border-color 0.15s;
+        }
+
+        .btn-purge:hover {
+            background: rgba(248, 113, 113, 0.16);
+            border-color: var(--red);
+        }
+
         /* Alert */
         .alert-success {
             padding: 10px 14px;
@@ -268,9 +305,9 @@
                 <span>Mail Service</span>
             </div>
             <div class="nav-links">
-                <a href="/admin">Dashboard</a>
-                <a href="/admin/logs">Logs</a>
-                <a href="/admin/settings" class="active">Configuración</a>
+                <a th:href="@{/admin}">Dashboard</a>
+                <a th:href="@{/admin/logs}">Logs</a>
+                <a th:href="@{/admin/settings}" class="active">Configuración</a>
             </div>
             <form th:action="@{/admin/logout}" method="post" style="margin: 0;">
                 <button type="submit" class="btn btn-ghost btn-sm">Cerrar Sesión</button>
@@ -387,10 +424,61 @@
                     </div>
                 </div>
 
+                <!-- Mantenimiento -->
+                <div class="settings-card">
+                    <h3>🗑️ Depuración de Logs</h3>
+
+                    <!-- purge_cron -->
+                    <div class="config-row" th:each="c : ${configs}" th:if="${c.configKey == 'purge_cron'}">
+                        <label class="config-label" th:for="${c.configKey}">Cron de depuración automática</label>
+                        <p class="config-desc">
+                            Expresión cron de 6 campos: <code>seg min hora dia-mes mes dia-semana</code>.
+                            El cambio se aplica en el próximo ciclo, sin reiniciar.
+                        </p>
+                        <input type="text" th:id="${c.configKey}" th:name="${c.configKey}" class="config-input"
+                            th:value="${c.configValue}" placeholder="0 0 3 1 1,7 *"
+                            style="font-family: monospace; font-size: 0.8rem;">
+                        <div style="margin-top: 6px; display: flex; gap: 6px; flex-wrap: wrap;">
+                            <button type="button" class="preset-btn"
+                                onclick="document.getElementById('purge_cron').value='0 0 3 1 1,7 *'">Cada 6
+                                meses</button>
+                            <button type="button" class="preset-btn"
+                                onclick="document.getElementById('purge_cron').value='0 0 3 1 1 *'">Anual (1
+                                ene)</button>
+                            <button type="button" class="preset-btn"
+                                onclick="document.getElementById('purge_cron').value='0 0 3 1 * *'">Mensual</button>
+                        </div>
+                    </div>
+
+                    <!-- purge_retention_months -->
+                    <div class="config-row" th:each="c : ${configs}" th:if="${c.configKey == 'purge_retention_months'}">
+                        <label class="config-label" th:for="${c.configKey}" th:text="${c.description}">Retención</label>
+                        <p class="config-desc">
+                            Los logs con más de este tiempo serán eliminados. Actualmente hay
+                            <strong th:text="${logsEligibleForPurge}">0</strong> registro(s) elegibles.
+                        </p>
+                        <input type="number" th:id="${c.configKey}" th:name="${c.configKey}" class="config-input"
+                            min="1" max="60" th:value="${c.configValue}">
+                    </div>
+
+                    <!-- Acción manual -->
+                    <div class="config-row"
+                        style="padding-top: 8px; border-top: 1px solid var(--border); margin-top: 4px;">
+                        <label class="config-label">Ejecución manual</label>
+                        <p class="config-desc">Elimina ahora los logs más antiguos que el período de retención
+                            configurado. Esta acción es irreversible.</p>
+                        <form th:action="@{/admin/maintenance/purge-now}" method="post" style="margin:0;"
+                            onsubmit="return confirm('¿Confirmar depuración? Esta acción eliminará registros de forma permanente.')">
+                            <button type="submit" class="btn-purge">🗑 Depurar ahora</button>
+                        </form>
+                    </div>
+                </div>
+
             </div>
 
+
             <div class="settings-actions">
-                <a href="/admin" class="btn btn-ghost btn-sm"
+                <a th:href="@{/admin}" class="btn btn-ghost btn-sm"
                     style="padding: 9px 18px; display: inline-block; border: 1px solid var(--border); border-radius: 6px; color: var(--text2); font-size: 0.83rem; text-decoration: none;">Cancelar</a>
                 <button type="submit" class="btn-save">Guardar cambios</button>
             </div>

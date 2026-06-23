@@ -1,5 +1,7 @@
 server:
-  port: 8081
+  port: 8020
+  servlet:
+    context-path: /mail-service  # Thymeleaf usa esto para generar URLs (CSS, links, redirects)
 
 spring:
   application:
@@ -15,9 +17,9 @@ spring:
     properties:
       mail:
         smtp:
-          auth: ${SPRING_MAIL_AUTH:false}
+          auth: ${SPRING_MAIL_AUTH}
           starttls:
-            enable: ${SPRING_MAIL_STARTTLS:false}
+            enable: ${SPRING_MAIL_STARTTLS}
     default-encoding: UTF-8
 
   thymeleaf:
@@ -30,8 +32,8 @@ spring:
   # Database
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/mailservice}
-    username: ${SPRING_DATASOURCE_USERNAME:mailuser}
-    password: ${SPRING_DATASOURCE_PASSWORD:mailpass123}
+    username: ${SPRING_DATASOURCE_USERNAME:}
+    password: ${SPRING_DATASOURCE_PASSWORD:}
     driver-class-name: org.postgresql.Driver
     hikari:
       maximum-pool-size: 10
@@ -52,10 +54,14 @@ spring:
 
 # Configuración del servicio
 mail-service:
-  api-key: ${API_KEY:dev-api-key-change-me}
+  api-key: ${API_KEY:}
   from:
-    address: ${MAIL_FROM:no-reply@tudominio.com}
-    name: ${MAIL_FROM_NAME:Mi Tienda}
+    address: ${MAIL_FROM:}
+    name: ${MAIL_FROM_NAME:}
+  maintenance:
+    # Cron de depuración automática de logs.
+    # El valor real lo define cada perfil (dev / prod) o la variable de entorno PURGE_CRON.
+    purge-cron: ${PURGE_CRON:}
 
 # Actuator
 management:

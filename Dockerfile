@@ -4,14 +4,13 @@ RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 
 WORKDIR /app
 
+# El JAR se copia y renombra a app.jar para independizar el ENTRYPOINT del nombre de versión
 COPY target/mail-service-1.0.0-SNAPSHOT.jar app.jar
 
 RUN chown -R appuser:appgroup /app
 
 USER appuser
 
-EXPOSE 8081
+EXPOSE 8020
 
-# En Docker siempre se activa el perfil 'prod'
-# La variable API_KEY debe ser provista via docker run -e API_KEY=... o docker-compose
-ENTRYPOINT ["java", "-Dspring.profiles.active=prod", "-jar", "app.jar"]
+ENTRYPOINT ["java", "-jar", "app.jar"]

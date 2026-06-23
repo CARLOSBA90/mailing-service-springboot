@@ -6,6 +6,7 @@ import com.mailservice.repository.MailLogRepository;
 import com.mailservice.service.ConfigService;
 import com.mailservice.service.ConfigServiceImpl;
 import com.mailservice.service.MailService;
+import com.mailservice.service.MaintenanceScheduler;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -35,6 +36,7 @@ public class AdminController {
     private final MailLogRepository mailLogRepository;
     private final MailService mailService;
     private final ConfigService configService;
+    private final MaintenanceScheduler maintenanceScheduler;
 
     /**
      * Página de login.
@@ -212,11 +214,18 @@ public class AdminController {
         int dailyLimit = configService.getDailySendLimit();
         int limitPercent = dailyLimit > 0 ? (int) Math.min(sentToday * 100L / dailyLimit, 100) : 0;
 
+        // Datos de mantenimiento / depuración
+        int retentionMonths = configService.getInt(ConfigServiceImpl.KEY_PURGE_RETENTION_MONTHS, 6);
+        LocalDateTime purgeCutoff = LocalDateTime.now().minusMonths(retentionMonths);
+        long logsEligibleForPurge = mailLogRepository.countByCreatedAtBefore(purgeCutoff);
+
         model.addAttribute("configs", configService.getAllConfigs());
         model.addAttribute("serviceEnabled", configService.isServiceEnabled());
         model.addAttribute("dailyLimit", dailyLimit);
         model.addAttribute("sentToday", sentToday);
         model.addAttribute("limitPercent", limitPercent);
+        model.addAttribute("purgeRetentionMonths", retentionMonths);
+        model.addAttribute("logsEligibleForPurge", logsEligibleForPurge);
         return "admin/settings";
     }
 
@@ -235,7 +244,9 @@ public class AdminController {
                 ConfigServiceImpl.KEY_SERVICE_ENABLED,
                 ConfigServiceImpl.KEY_MAX_RETRIES,
                 ConfigServiceImpl.KEY_RETRY_COOLDOWN,
-                ConfigServiceImpl.KEY_ALLOWED_TEMPLATES);
+                ConfigServiceImpl.KEY_ALLOWED_TEMPLATES,
+                ConfigServiceImpl.KEY_PURGE_RETENTION_MONTHS,
+                ConfigServiceImpl.KEY_PURGE_CRON);
 
         int updated = 0;
         for (Map.Entry<String, String> entry : params.entrySet()) {
@@ -248,6 +259,25 @@ public class AdminController {
 
         log.info("Configuración actualizada desde Admin UI | campos: {}", updated);
         redirectAttributes.addFlashAttribute("successMessage", "Configuración guardada correctamente");
+        return "redirect:/admin/settings";
+    }
+
+    /**
+     * Ejecuta la depuración de logs de forma manual desde el Admin.
+     * No requiere esperar al cron semestral.
+     */
+    @PostMapping("/maintenance/purge-now")
+    public String purgeNow(RedirectAttributes redirectAttributes) {
+        try {
+            int deleted = maintenanceScheduler.purgeOldLogs();
+            redirectAttributes.addFlashAttribute("successMessage",
+                    String.format("Depuración completada — %d registro(s) eliminados.", deleted));
+            log.info("Depuración manual ejecutada desde Admin UI | eliminados: {}", deleted);
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("errorMessage",
+                    "Error durante la depuración: " + e.getMessage());
+            log.error("Error en depuración manual: {}", e.getMessage(), e);
+        }
         return "redirect:/admin/settings";
     }
 }

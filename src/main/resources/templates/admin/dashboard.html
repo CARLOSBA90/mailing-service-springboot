@@ -20,9 +20,9 @@
                 <span>Mail Service</span>
             </div>
             <div class="nav-links">
-                <a href="/admin" class="active">Dashboard</a>
-                <a href="/admin/logs">Logs</a>
-                <a href="/admin/settings">Configuración</a>
+                <a th:href="@{/admin}" class="active">Dashboard</a>
+                <a th:href="@{/admin/logs}">Logs</a>
+                <a th:href="@{/admin/settings}">Configuración</a>
             </div>
             <form th:action="@{/admin/logout}" method="post" style="margin: 0;">
                 <button type="submit" class="btn btn-ghost btn-sm">Cerrar Sesión</button>
@@ -73,7 +73,7 @@
         <div class="card">
             <div class="card-header">
                 <h2>Últimos Emails</h2>
-                <a href="/admin/logs" class="btn btn-ghost btn-sm">Ver todos →</a>
+                <a th:href="@{/admin/logs}" class="btn btn-ghost btn-sm">Ver todos →</a>
             </div>
             <div class="table-wrapper">
                 <table>

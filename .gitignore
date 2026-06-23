@@ -37,6 +37,7 @@ build/
 
 ### Env ###
 *.env
+!.env.example
 
 ### Spring Boot - Archivos con credenciales sensibles ###
 src/main/resources/application-dev.yml

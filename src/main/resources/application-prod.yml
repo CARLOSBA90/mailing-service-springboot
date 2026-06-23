@@ -1,7 +1,4 @@
-# application-prod.yml
-# Configuración para producción
-# Lee todas las credenciales desde variables de entorno
-
+ 
 spring:
   mail:
     host: ${SPRING_MAIL_HOST}
@@ -11,27 +8,28 @@ spring:
     properties:
       mail:
         smtp:
-          auth: ${SPRING_MAIL_AUTH:true}
+          auth: ${SPRING_MAIL_AUTH}
           starttls:
-            enable: ${SPRING_MAIL_STARTTLS:true}
-
-  # Database (desde variables de entorno)
+            enable: ${SPRING_MAIL_STARTTLS}
+ 
   datasource:
     url: ${SPRING_DATASOURCE_URL}
     username: ${SPRING_DATASOURCE_USERNAME}
     password: ${SPRING_DATASOURCE_PASSWORD}
 
-  # JPA en producción
+  # JPA en prod 
   jpa:
     hibernate:
-      ddl-auto: validate  # No modifica el schema en producción
-    show-sql: false       # No mostrar SQL en producción
+      ddl-auto: validate  # No modifica el schema en prod 
+    show-sql: false       # No mostrar SQL en prod 
 
 mail-service:
   api-key: ${API_KEY}
   from:
     address: ${MAIL_FROM}
     name: ${MAIL_FROM_NAME}
+  maintenance:
+    purge-cron: ${PURGE_CRON}
 
 # Admin UI credentials
 admin:

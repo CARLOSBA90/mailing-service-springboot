@@ -157,7 +157,8 @@ public class SecurityConfig {
                     HttpServletResponse response,
                     FilterChain filterChain) throws ServletException, IOException {
 
-                String path = request.getRequestURI();
+                // getServletPath() devuelve la ruta relativa al context-path
+                String path = request.getServletPath();
 
                 // Rutas públicas (actuator, favicon, error)
                 if (path.startsWith("/actuator") || path.equals("/favicon.ico") || path.equals("/error")) {

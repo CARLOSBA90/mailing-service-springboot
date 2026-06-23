@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${subject}">Aviso de Contacto</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f4f7;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #f4f4f7; padding: 40px 0;">
+        <tr>
+            <td align="center">
+                <table role="presentation" width="600" cellspacing="0" cellpadding="0" style="background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+                    <tr>
+                        <td style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); padding: 30px; text-align: center;">
+                            <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: 600;" th:text="${subject}">Nuevo Mensaje de Contacto</h1>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 40px 30px;">
+                            <p style="color: #333333; font-size: 16px; line-height: 1.6; margin: 0 0 20px;">
+                                <strong>Nombre:</strong> <span th:text="${senderName}">Nombre</span><br>
+                                <strong>Empresa:</strong> <span th:text="${company}">Empresa</span><br>
+                                <strong>Email:</strong> <span th:text="${email}">Email</span><br>
+                                <strong>Teléfono:</strong> <span th:text="${phone}">Teléfono</span><br>
+                                <strong>Servicio:</strong> <span th:text="${service}">Servicio</span>
+                            </p>
+                            <div style="background-color: #f8f9fa; border-left: 4px solid #1a1a2e; padding: 16px; color: #555555; font-size: 15px; line-height: 1.6; white-space: pre-wrap;" th:text="${message}">
+                                Contenido del mensaje...
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="background-color: #f8f9fa; padding: 24px 30px; text-align: center; border-top: 1px solid #e9ecef;">
+                            <p style="color: #999999; font-size: 12px; margin: 0;">Mensaje enviado desde el formulario web de Wayúu Systems.</p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
